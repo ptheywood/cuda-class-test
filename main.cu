@@ -39,12 +39,11 @@ public:
 };
 
 
-
-
-__global__ void test_kernel(unsigned int threads, TestClass * d_instance){
+__global__ void test_kernel(unsigned int threads){//, TestClass * d_instance){
     unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
     if(tid < threads){
-        printf("Thread %u: d_isntance %p, element %d\n", tid, d_instance, d_instance->get(tid));
+        printf("Thread %u\n", tid);
+        // printf("Thread %u: d_isntance %p, element %d\n", tid, d_instance, d_instance->get(tid));
     }
 }
 
@@ -58,16 +57,21 @@ int main(int argc, char * argv[]){
     TestClass * h_instance = new TestClass(N);
 
     // Construct.
+    printf("construct...\n");
     h_instance->allocate();
 
     printf("h_instance %p \n", h_instance);
 
     // Launch a kernel with the instance as the parameter
 
-    test_kernel<<<N, 1>>>(N, h_instance);
+    printf("kernel...\n");
+    test_kernel<<<N, 1>>>(N);
+    cudaDeviceSynchronize();
+    printf("synced...\n");
 
 
     // Free
+    printf("free...\n");
     h_instance->free();
     delete h_instance;
 
