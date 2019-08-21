@@ -42,8 +42,8 @@ public:
 __global__ void test_kernel(unsigned int threads, TestClass * d_instance){
     unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
     if(tid < threads){
-        printf("Thread %u\n", tid);
-        // printf("Thread %u: d_isntance %p, element %d\n", tid, d_instance, d_instance->get(tid));
+        // printf("Thread %u\n", tid);
+        printf("Thread %u: d_isntance %p, element %d\n", tid, d_instance, d_instance->get(tid));
     }
 }
 
