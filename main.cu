@@ -41,8 +41,11 @@ public:
 
 
 
-__global__ void test_kernel(TestClass * d_instance){
-
+__global__ void test_kernel(unsigned int threads, TestClass * d_instance){
+    unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    if(tid < threads){
+        printf("Thread %u: d_isntance %p, element %d\n", tid, d_instance, d_instance->get(tid));
+    }
 }
 
 
@@ -61,7 +64,7 @@ int main(int argc, char * argv[]){
 
     // Launch a kernel with the instance as the parameter
 
-    test_kernel<<<N, 1>>>(h_instance);
+    test_kernel<<<N, 1>>>(N, h_instance);
 
 
     // Free
