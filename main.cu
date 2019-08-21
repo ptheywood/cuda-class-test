@@ -1,6 +1,16 @@
 #include <stdio.h>
 #include <cuda_runtime.h>
 
+#define CUDACHECK(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess) 
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+
 class TestClass {
 
 public:
@@ -20,12 +30,12 @@ public:
     }
 
     __host__ void allocate(){
-        cudaMalloc((void**) &this->data, this->len * sizeof(int));
-        cudaMemset(this->data, 0, this->len * sizeof(int));
+        CUDACHECK(cudaMalloc((void**) &this->data, this->len * sizeof(int)));
+        CUDACHECK(cudaMemset(this->data, 0, this->len * sizeof(int)));
     }
 
     __host__ void free(){
-        cudaFree(this->data);
+        CUDACHECK(cudaFree(this->data));
         this->data = nullptr;
     }
 
@@ -66,7 +76,7 @@ int main(int argc, char * argv[]){
 
     printf("kernel...\n");
     test_kernel<<<N, 1>>>(N, h_instance);
-    cudaDeviceSynchronize();
+    CUDACHECK(cudaDeviceSynchronize());
     printf("synced...\n");
 
 
