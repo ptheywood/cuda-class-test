@@ -39,7 +39,7 @@ public:
 };
 
 
-__global__ void test_kernel(unsigned int threads){//, TestClass * d_instance){
+__global__ void test_kernel(unsigned int threads, TestClass * d_instance){
     unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
     if(tid < threads){
         printf("Thread %u\n", tid);
@@ -65,7 +65,7 @@ int main(int argc, char * argv[]){
     // Launch a kernel with the instance as the parameter
 
     printf("kernel...\n");
-    test_kernel<<<N, 1>>>(N);
+    test_kernel<<<N, 1>>>(N, h_instance);
     cudaDeviceSynchronize();
     printf("synced...\n");
 
