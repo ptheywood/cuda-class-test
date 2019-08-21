@@ -57,7 +57,7 @@ int main(int argc, char * argv[]){
     // Construct.
     h_instance->allocate();
 
-    print("%h_instance %zu \n", h_instance);
+    printf("h_instance %p \n", h_instance);
 
     // Launch a kernel with the instance as the parameter
 
