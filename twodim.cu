@@ -21,12 +21,12 @@ __global__ void twodims_kernel(unsigned int maxx, unsigned int maxy){
     if(col < maxx && row < maxy){
         // Only print in some threads. 
         if (gid < 8){
-            printf("gid %u, col: %u, row: %u valid\n", gid, col, row);
+            //printf("gid %u, col: %u, row: %u valid\n", gid, col, row);
         }
         
     } else {
         if(gid < 8){
-            printf("gid %u, col: %u, row: %u bad\n", gid, col, row);
+            //printf("gid %u, col: %u, row: %u bad\n", gid, col, row);
         }
     }
 }
@@ -34,15 +34,31 @@ __global__ void twodims_kernel(unsigned int maxx, unsigned int maxy){
 
 void launch2dexample(){
     printf("launch2dexample\n");
-    unsigned int XLEN = 8;
-    unsigned int YLEN = 4;
+    unsigned int XLEN = 256;
+    unsigned int YLEN = 768;
 
     printf("problem size of %u x %u\n", XLEN, YLEN);
 
     unsigned int totalElements = XLEN * YLEN;
     
+    
+    // Get the number of threads to launch 
+
+    // Ask the occupancy calculator to find the total number of threads per block which will maximiuse occupancy for the kernel.
+    int minGridSize = 0; // Minimum grid size to achieve max occupancy
+    int totalThreadsPerBlock = 0; // Number of threads per block
+    CUDACHECK(cudaOccupancyMaxPotentialBlockSize(&minGridSize, &totalThreadsPerBlock, twodims_kernel, 0, 0));
+
+
+    // Given the calculated blocksize, figure out each dimension for some form of 2D grid.
+    // This could be non square to fit the same shape as the problem, but we will assume square for now
+    int ttpb_sqrt = (int)floor(sqrt(totalThreadsPerBlock));
+
+    printf("mgs: %d, tpb %d, sqrt %d\n", minGridSize, totalThreadsPerBlock, ttpb_sqrt);
+
+
     // suggest block dimensions. Threads per block must not exceed 1024 on most hardware, registers will probably be a limiting factor. 
-    dim3 blocksize(2, 2);
+    dim3 blocksize(ttpb_sqrt, ttpb_sqrt);
 
     // shrink either if larger than the actual dimensions to minimise work
     if(blocksize.x > XLEN){
@@ -56,8 +72,8 @@ void launch2dexample(){
     gridsize.x = (XLEN + blocksize.x - 1) / blocksize.x;
     gridsize.y = (YLEN + blocksize.y - 1) / blocksize.y;
 
-    unsigned int totalThreads = (blocksize.x * blocksize.y) * (gridsize.x * gridsize.y);
 
+    unsigned int totalThreads = (blocksize.x * blocksize.y) * (gridsize.x * gridsize.y);
 
     printf("Launching %d x %d threads per block, with %d x %d blocks.\n %u elements, %u threads\n",
         blocksize.x, blocksize.y, gridsize.x, gridsize.y, totalElements, totalThreads);
