@@ -12,6 +12,40 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 
 
+template<typename T>
+inline void
+get_kernel_dims(const int max_x,
+                const int max_y,
+                T kernel,
+                dim3& out_blocksize,
+                dim3& out_gridsize)
+{
+
+   int minGridSize = 0; // Minimum grid size to achieve max occupancy
+   int totalThreadsPerBlock = 0; // Number of threads per block
+   CUDACHECK(cudaOccupancyMaxPotentialBlockSize(&minGridSize, &totalThreadsPerBlock, kernel, 0, 0));
+   printf("mgs %d, ttpb %d\n", minGridSize, totalThreadsPerBlock);
+
+  // Suggest block dimensions. Threads per block must not exceed 1024 on most
+  // hardware, registers will probably be a limiting factor.
+  dim3 blocksize(2, 2);
+
+  // Shrink either if larger than the actual dimensions to minimise work
+  if (blocksize.x > max_x) {
+    blocksize.x = max_y;
+  }
+  if (blocksize.y > max_x) {
+    blocksize.y = max_y;
+  }
+
+  dim3 gridsize;
+  gridsize.x = (max_x + blocksize.x - 1) / blocksize.x;
+  gridsize.y = (max_y + blocksize.y - 1) / blocksize.y;
+
+  out_blocksize = blocksize;
+  out_gridsize = gridsize;
+}
+ 
 __global__ void twodims_kernel(unsigned int maxx, unsigned int maxy){
     unsigned int col = threadIdx.x + blockIdx.x * blockDim.x;
     unsigned int row = threadIdx.y + blockIdx.y * blockDim.y;
@@ -45,33 +79,16 @@ void launch2dexample(){
     // Get the number of threads to launch 
 
     // Ask the occupancy calculator to find the total number of threads per block which will maximiuse occupancy for the kernel.
-    int minGridSize = 0; // Minimum grid size to achieve max occupancy
-    int totalThreadsPerBlock = 0; // Number of threads per block
-    CUDACHECK(cudaOccupancyMaxPotentialBlockSize(&minGridSize, &totalThreadsPerBlock, twodims_kernel, 0, 0));
+   
+
+    dim3 blocksize;
+    dim3 gridsize;
+
+    get_kernel_dims(XLEN, YLEN, twodims_kernel, blocksize, gridsize);
 
 
     // Given the calculated blocksize, figure out each dimension for some form of 2D grid.
     // This could be non square to fit the same shape as the b.,problem, but we will assume square for now
-    int ttpb_sqrt = (int)floor(sqrt(totalThreadsPerBlock));
-
-    printf("mgs: %d, tpb %d, sqrt %d\n", minGridSize, totalThreadsPerBlock, ttpb_sqrt);
-
-
-    // suggest block dimensions. Threads per block must not exceed 1024 on most hardware, registers will probably be a limiting factor. 
-    dim3 blocksize(ttpb_sqrt, ttpb_sqrt);
-
-    // shrink either if larger than the actual dimensions to minimise work
-    if(blocksize.x > XLEN){
-        blocksize.x = XLEN;
-    }
-    if(blocksize.y > YLEN){
-        blocksize.y = YLEN;
-    }
-
-    dim3 gridsize;
-    gridsize.x = (XLEN + blocksize.x - 1) / blocksize.x;
-    gridsize.y = (YLEN + blocksize.y - 1) / blocksize.y;
-
 
     unsigned int totalThreads = (blocksize.x * blocksize.y) * (gridsize.x * gridsize.y);
 
