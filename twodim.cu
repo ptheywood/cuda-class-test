@@ -21,29 +21,37 @@ get_kernel_dims(const int max_x,
                 dim3& out_gridsize)
 {
 
-   int minGridSize = 0; // Minimum grid size to achieve max occupancy
-   int totalThreadsPerBlock = 0; // Number of threads per block
-   CUDACHECK(cudaOccupancyMaxPotentialBlockSize(&minGridSize, &totalThreadsPerBlock, kernel, 0, 0));
-   printf("mgs %d, ttpb %d\n", minGridSize, totalThreadsPerBlock);
+    // Use the occupancy calculator to find the 1D numbr of threads per block which maximises occupancy. Assumes a square number. 
+    int minGridSize = 0; // Minimum grid size to achieve max occupancy
+    int totalThreadsPerBlock = 0; // Number of threads per block
+    // Query the occupancy calculator.
+    CUDACHECK(cudaOccupancyMaxPotentialBlockSize(&minGridSize, &totalThreadsPerBlock, kernel, 0, 0));
 
-  // Suggest block dimensions. Threads per block must not exceed 1024 on most
-  // hardware, registers will probably be a limiting factor.
-  dim3 blocksize(2, 2);
+    // Assume we alwasy want square kernels. This may be sub-optimal.
+    int blocksize_xy = (int)floor(sqrt(totalThreadsPerBlock));
 
-  // Shrink either if larger than the actual dimensions to minimise work
-  if (blocksize.x > max_x) {
+
+    // Suggest block dimensions. Threads per block must not exceed 1024 on most
+    // hardware, registers will probably be a limiting factor.
+    dim3 blocksize(blocksize_xy, blocksize_xy);
+
+    // Shrink either if larger than the actual dimensions to minimise work
+    // @note this might reduce the work below ideal occupancy, for very wide/narrow problems
+    if (blocksize.x > max_x) {
     blocksize.x = max_y;
-  }
-  if (blocksize.y > max_x) {
+    }
+    if (blocksize.y > max_x) {
     blocksize.y = max_y;
-  }
+    }
 
-  dim3 gridsize;
-  gridsize.x = (max_x + blocksize.x - 1) / blocksize.x;
-  gridsize.y = (max_y + blocksize.y - 1) / blocksize.y;
+    // Calculate the gridsize. 
+    dim3 gridsize;
+    gridsize.x = (max_x + blocksize.x - 1) / blocksize.x;
+    gridsize.y = (max_y + blocksize.y - 1) / blocksize.y;
 
-  out_blocksize = blocksize;
-  out_gridsize = gridsize;
+    //  Set for the outside ones. 
+    out_blocksize = blocksize;
+    out_gridsize = gridsize;
 }
  
 __global__ void twodims_kernel(unsigned int maxx, unsigned int maxy){
@@ -75,12 +83,6 @@ void launch2dexample(){
 
     unsigned int totalElements = XLEN * YLEN;
     
-    
-    // Get the number of threads to launch 
-
-    // Ask the occupancy calculator to find the total number of threads per block which will maximiuse occupancy for the kernel.
-   
-
     dim3 blocksize;
     dim3 gridsize;
 
