@@ -51,7 +51,7 @@ void launch2dexample(){
 
 
     // Given the calculated blocksize, figure out each dimension for some form of 2D grid.
-    // This could be non square to fit the same shape as the problem, but we will assume square for now
+    // This could be non square to fit the same shape as the b.,problem, but we will assume square for now
     int ttpb_sqrt = (int)floor(sqrt(totalThreadsPerBlock));
 
     printf("mgs: %d, tpb %d, sqrt %d\n", minGridSize, totalThreadsPerBlock, ttpb_sqrt);
@@ -79,7 +79,7 @@ void launch2dexample(){
         blocksize.x, blocksize.y, gridsize.x, gridsize.y, totalElements, totalThreads);
 
     // Launch the kernel. 
-    twodims_kernel<<<blocksize, gridsize, 0, 0>>>(XLEN, YLEN);
+    twodims_kernel<<<gridsize, blocksize, 0, 0>>>(XLEN, YLEN);
 
     // synchronize after the kernel to make sure there were no errors. 
     CUDACHECK(cudaDeviceSynchronize());

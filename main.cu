@@ -74,9 +74,8 @@ void test_class_launch(){
     printf("h_instance %p \n", h_instance);
 
     // Launch a kernel with the instance as the parameter
-
     printf("kernel...\n");
-    test_kernel<<<N, 1>>>(N, h_instance);
+    test_kernel<<<1, N>>>(N, h_instance);
     CUDACHECK(cudaDeviceSynchronize());
     printf("synced...\n");
 
